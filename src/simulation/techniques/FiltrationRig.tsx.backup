@@ -1,0 +1,367 @@
+import { useMemo, useRef, useEffect } from "react";
+import { useFrame } from "@react-three/fiber";
+import { useLabStore } from "../../state/labStore";
+import { useSimulationClock } from "../engine";
+import * as THREE from "three";
+import { Text } from "@react-three/drei";
+
+// Educational filtration model using Darcy's law approximation
+// flowRate ~ (vacuum * area) / (viscosity * resistance)
+// resistance grows with cake thickness over time
+
+// Compound colors for visualization
+const compoundColors: Record<string, string> = {
+  sand: "#d4a574",
+  chalk: "#f0f0f0",
+  coffee: "#3e2723",
+  clay: "#8b7355",
+  water: "#60a5fa",
+  saltwater: "#4a90e2",
+  oil: "#ffd700",
+};
+
+export function FiltrationRig() {
+  const params = useLabStore((s) => s.params.filtration);
+  const experiment = useLabStore((s) => s.filtrationExperiment);
+  const updateExperiment = useLabStore((s) => s.updateFiltrationExperiment);
+
+  useSimulationClock({ running: experiment.isRunning, speed: 1 });
+
+  const liquidLevelRef = useRef(experiment.liquidLevel);
+  const filtrateLevelRef = useRef(experiment.filtrateLevel);
+  const cakeThicknessRef = useRef(experiment.cakeThickness);
+
+  // Sync refs with experiment state
+  useEffect(() => {
+    liquidLevelRef.current = experiment.liquidLevel;
+    filtrateLevelRef.current = experiment.filtrateLevel;
+    cakeThicknessRef.current = experiment.cakeThickness;
+  }, [
+    experiment.liquidLevel,
+    experiment.filtrateLevel,
+    experiment.cakeThickness,
+  ]);
+
+  const funnelPos = useMemo(() => new THREE.Vector3(0, 1.3, 0), []);
+
+  // Get colors based on selected compounds
+  const solidColor = experiment.solidCompound
+    ? compoundColors[experiment.solidCompound] || "#8b7355"
+    : "#8b7355";
+  const liquidColor = experiment.liquidCompound
+    ? compoundColors[experiment.liquidCompound] || "#60a5fa"
+    : "#60a5fa";
+
+  useFrame((_, dt) => {
+    if (!experiment.isRunning) return;
+
+    const vacuum = Math.max(0, params.vacuumMbar);
+    const area = Math.max(1, params.filterAreaCm2) / 10000;
+    const viscosity = Math.max(0.1, params.slurryViscosityCP) / 1000;
+    const pore = Math.max(0.1, params.poreSizeMicron) * 1e-6;
+
+    const baseResistance = 1 / Math.pow(pore, 2);
+    const cakeResistance = 1 + cakeThicknessRef.current * 100;
+    const resistance = baseResistance * cakeResistance;
+
+    const pressurePa = vacuum * 100;
+    const flowRate = (pressurePa * area) / (viscosity * resistance);
+    const scaledFlow = flowRate * 5e-6;
+
+    const dV = scaledFlow * dt;
+
+    if (liquidLevelRef.current > 0.05) {
+      liquidLevelRef.current = Math.max(0.05, liquidLevelRef.current - dV * 2);
+      filtrateLevelRef.current = Math.min(
+        0.5,
+        filtrateLevelRef.current + dV * 1.5
+      );
+      cakeThicknessRef.current = Math.min(
+        0.08,
+        cakeThicknessRef.current + dV * 0.3
+      );
+
+      // Update store
+      updateExperiment({
+        liquidLevel: liquidLevelRef.current,
+        filtrateLevel: filtrateLevelRef.current,
+        cakeThickness: cakeThicknessRef.current,
+      });
+    } else {
+      // Filtration complete
+      updateExperiment({ step: "complete", isRunning: false });
+    }
+  });
+
+  return (
+    <group position={[0, 0, 0]}>
+      {/* Ring stand base */}
+      <group position={[-0.3, 0.75, 0]}>
+        <mesh position={[0, 0.05, 0]}>
+          <cylinderGeometry args={[0.15, 0.15, 0.02, 32]} />
+          <meshStandardMaterial
+            color="#2a2a2a"
+            metalness={0.5}
+            roughness={0.5}
+          />
+        </mesh>
+        <mesh position={[0, 0.5, 0]}>
+          <cylinderGeometry args={[0.01, 0.01, 1, 16]} />
+          <meshStandardMaterial
+            color="#4a4a4a"
+            metalness={0.7}
+            roughness={0.3}
+          />
+        </mesh>
+      </group>
+
+      {/* Support ring for funnel */}
+      <mesh position={[-0.3, 1.25, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <torusGeometry args={[0.18, 0.008, 16, 32]} />
+        <meshStandardMaterial color="#4a4a4a" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[-0.2, 1.25, 0]} rotation={[0, 0, 0]}>
+        <cylinderGeometry args={[0.008, 0.008, 0.2, 16]} />
+        <meshStandardMaterial color="#4a4a4a" metalness={0.7} roughness={0.3} />
+      </mesh>
+
+      {/* Glass Funnel */}
+      <group position={funnelPos.toArray()}>
+        {/* Funnel body - more visible glass */}
+        <mesh castShadow receiveShadow>
+          <coneGeometry args={[0.22, 0.4, 48, 1, true]} />
+          <meshPhysicalMaterial
+            color="#e8f4f8"
+            transparent
+            opacity={0.35}
+            roughness={0.05}
+            metalness={0.05}
+            transmission={0.7}
+            thickness={2}
+            clearcoat={1}
+            clearcoatRoughness={0.1}
+          />
+        </mesh>
+        
+        {/* Funnel rim - thicker edge for visibility */}
+        <mesh rotation={[0, 0, 0]}>
+          <torusGeometry args={[0.22, 0.015, 16, 48]} />
+          <meshStandardMaterial 
+            color="#c8e1e8" 
+            transparent 
+            opacity={0.6}
+            roughness={0.1}
+            metalness={0.2}
+          />
+        </mesh>
+
+        {/* Funnel stem - more visible */}
+        <mesh position={[0, -0.35, 0]} castShadow>
+          <cylinderGeometry args={[0.02, 0.02, 0.3, 16]} />
+          <meshPhysicalMaterial
+            color="#e8f4f8"
+            transparent
+            opacity={0.4}
+            roughness={0.05}
+            transmission={0.65}
+            thickness={1.5}
+            clearcoat={1}
+          />
+        </mesh>
+
+        {/* Slurry (murky liquid with particles) */}
+        {liquidLevelRef.current > 0.05 && (
+          <mesh position={[0, -0.15 + liquidLevelRef.current * 0.15, 0]}>
+            <cylinderGeometry
+              args={[
+                0.001,
+                0.19 * (liquidLevelRef.current / 0.8),
+                Math.max(0.02, liquidLevelRef.current * 0.4),
+                32,
+              ]}
+            />
+            <meshStandardMaterial
+              color={solidColor}
+              transparent
+              opacity={0.7}
+              roughness={0.9}
+            />
+          </mesh>
+        )}
+
+        {/* Filter paper */}
+        <mesh position={[0, -0.18, 0]} rotation={[0, 0, 0]}>
+          <cylinderGeometry args={[0.19, 0.19, 0.005, 32]} />
+          <meshStandardMaterial color="#f5f5dc" roughness={0.9} />
+        </mesh>
+
+        {/* Filter cake (residue buildup) */}
+        <mesh position={[0, -0.175 + cakeThicknessRef.current / 2, 0]}>
+          <cylinderGeometry
+            args={[0.18, 0.18, Math.max(0.005, cakeThicknessRef.current), 32]}
+          />
+          <meshStandardMaterial color={solidColor} roughness={1} />
+        </mesh>
+      </group>
+
+      {/* Erlenmeyer Flask */}
+      <group position={[0, 0.85, 0]}>
+        {/* Flask body (cone + cylinder) - more visible glass */}
+        <mesh castShadow receiveShadow>
+          <coneGeometry args={[0.2, 0.25, 32]} />
+          <meshPhysicalMaterial
+            color="#e8f4f8"
+            transparent
+            opacity={0.3}
+            roughness={0.05}
+            transmission={0.75}
+            thickness={2}
+            clearcoat={1}
+            clearcoatRoughness={0.1}
+          />
+        </mesh>
+        <mesh position={[0, 0.175, 0]} castShadow>
+          <cylinderGeometry args={[0.2, 0.2, 0.1, 32]} />
+          <meshPhysicalMaterial
+            color="#e8f4f8"
+            transparent
+            opacity={0.3}
+            roughness={0.05}
+            transmission={0.75}
+            thickness={2}
+            clearcoat={1}
+            clearcoatRoughness={0.1}
+          />
+        </mesh>
+
+        {/* Flask neck - more visible */}
+        <mesh position={[0, 0.3, 0]} castShadow>
+          <cylinderGeometry args={[0.035, 0.04, 0.15, 24]} />
+          <meshPhysicalMaterial
+            color="#e8f4f8"
+            transparent
+            opacity={0.35}
+            roughness={0.05}
+            transmission={0.7}
+            thickness={1.5}
+            clearcoat={1}
+          />
+        </mesh>
+
+        {/* Flask rim highlight */}
+        <mesh position={[0, 0.375, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.04, 0.004, 16, 32]} />
+          <meshStandardMaterial color="#b0d4e0" metalness={0.7} roughness={0.2} />
+        </mesh>
+
+        {/* Filtrate (clear liquid) */}
+        {filtrateLevelRef.current > 0.01 && (
+          <mesh position={[0, -0.125 + filtrateLevelRef.current * 0.2, 0]}>
+            <cylinderGeometry
+              args={[
+                0.18,
+                0.18,
+                Math.max(0.02, filtrateLevelRef.current * 0.4),
+                32,
+              ]}
+            />
+            <meshStandardMaterial
+              color={liquidColor}
+              transparent
+              opacity={0.5}
+              roughness={0.1}
+              metalness={0.1}
+            />
+          </mesh>
+        )}
+
+        {/* Vacuum connection tube */}
+        <mesh position={[-0.15, 0.1, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.015, 0.015, 0.15, 16]} />
+          <meshStandardMaterial color="#444444" roughness={0.7} />
+        </mesh>
+      </group>
+
+      {/* Labels for educational purposes */}
+      <Text
+        position={[-0.6, 1.5, 0]}
+        fontSize={0.06}
+        color="#2563eb"
+        anchorX="center"
+        anchorY="middle"
+      >
+        Funnel
+      </Text>
+
+      <Text
+        position={[-0.6, 0.9, 0]}
+        fontSize={0.06}
+        color="#2563eb"
+        anchorX="center"
+        anchorY="middle"
+      >
+        Flask
+      </Text>
+
+      {experiment.step === "complete" && (
+        <Text
+          position={[0, 1.6, 0]}
+          fontSize={0.08}
+          color="#16a34a"
+          anchorX="center"
+          anchorY="middle"
+        >
+          Filtration Complete!
+        </Text>
+      )}
+
+      {/* Beaker on table for mixing (visible during setup/mixing/ready) */}
+      {(experiment.step === "setup" ||
+        experiment.step === "mixing" ||
+        experiment.step === "ready") && (
+        <group position={[-1.2, 0.85, 0]}>
+          <mesh castShadow>
+            <cylinderGeometry args={[0.15, 0.12, 0.25, 32]} />
+            <meshPhysicalMaterial
+              color="#e8f4f8"
+              transparent
+              opacity={0.3}
+              roughness={0.05}
+              transmission={0.75}
+              thickness={2}
+              clearcoat={1}
+              clearcoatRoughness={0.1}
+            />
+          </mesh>
+
+          {/* Beaker rim highlight */}
+          <mesh position={[0, 0.125, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.15, 0.005, 16, 32]} />
+            <meshStandardMaterial color="#b0d4e0" metalness={0.7} roughness={0.2} />
+          </mesh>
+
+          {/* Mixture in beaker */}
+          {experiment.mixingProgress > 0 && (
+            <mesh position={[0, -0.08, 0]}>
+              <cylinderGeometry args={[0.14, 0.11, 0.15, 32]} />
+              <meshStandardMaterial
+                color={solidColor}
+                transparent
+                opacity={0.6}
+              />
+            </mesh>
+          )}
+
+          <Text
+            position={[0, -0.25, 0]}
+            fontSize={0.05}
+            color="#2563eb"
+            anchorX="center"
+          >
+            Mixing Beaker
+          </Text>
+        </group>
+      )}
+    </group>
+  );
+}

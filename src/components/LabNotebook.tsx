@@ -158,11 +158,33 @@ const techniqueInfo = {
       "Work in fume hood",
     ],
   },
+  evaporation: {
+    title: "Evaporation",
+    objective: "Separate a dissolved solid from a liquid by heating",
+    principle:
+      "Evaporation removes the liquid solvent by heating, leaving the solid residue behind. The liquid evaporates into the air while the solid remains.",
+    realWorld:
+      "Salt production from seawater, concentrating solutions, recovering dissolved solids, crystallization",
+    procedure: [
+      "Gather materials to be mixed",
+      "Mix the solution thoroughly",
+      "Set up evaporating apparatus with tripod and burner",
+      "Light the burner and heat the solution",
+      "Observe liquid evaporating",
+      "Continue until solid residue remains",
+    ],
+    safety: [
+      "Never leave heating unattended",
+      "Use heat-resistant equipment",
+      "Avoid splashing hot liquids",
+      "Allow apparatus to cool before handling",
+    ],
+  },
 };
 
 export default function LabNotebook({ onClose }: LabNotebookProps) {
   const technique = useLabStore((s) => s.technique);
-  const info = techniqueInfo[technique];
+  const info = techniqueInfo[technique as keyof typeof techniqueInfo];
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -225,7 +247,7 @@ export default function LabNotebook({ onClose }: LabNotebookProps) {
               📋 Procedure
             </h4>
             <ol className="space-y-2">
-              {info.procedure.map((step, i) => (
+              {info.procedure.map((step: string, i: number) => (
                 <li key={i} className="flex gap-3 items-start">
                   <span className="bg-orange-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0">
                     {i + 1}
@@ -242,7 +264,7 @@ export default function LabNotebook({ onClose }: LabNotebookProps) {
               ⚠️ Safety Precautions
             </h4>
             <ul className="space-y-2">
-              {info.safety.map((item, i) => (
+              {info.safety.map((item: string, i: number) => (
                 <li
                   key={i}
                   className="flex gap-2 items-start bg-red-50 p-3 rounded-lg"

@@ -66,10 +66,18 @@ const safetyInfo = {
     "Secure stopper when shaking",
     "Point funnel away from yourself and others when venting",
   ],
+  evaporation: [
+    "Never leave heating unattended",
+    "Use heat-resistant equipment - evaporating dish or beaker",
+    "Avoid splashing hot liquids",
+    "Keep flammable materials away from heat source",
+    "Allow apparatus to cool completely before handling",
+    "Be aware of hot vapors rising from the solution",
+  ],
 };
 
 export default function SafetyPanel({ onClose, technique }: SafetyPanelProps) {
-  const specificSafety = safetyInfo[technique] || [];
+  const specificSafety = safetyInfo[technique as keyof typeof safetyInfo] || [];
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -122,7 +130,7 @@ export default function SafetyPanel({ onClose, technique }: SafetyPanelProps) {
                 -Specific Safety
               </h3>
               <div className="space-y-2">
-                {specificSafety.map((rule, i) => (
+                {specificSafety.map((rule: string, i: number) => (
                   <div
                     key={i}
                     className="flex gap-3 items-start bg-orange-50 p-3 rounded-lg border-l-4 border-orange-500"

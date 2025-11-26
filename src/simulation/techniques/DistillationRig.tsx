@@ -1,365 +1,203 @@
-import { useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+﻿import { useRef, useEffect } from "react";
 import { useLabStore } from "../../state/labStore";
-import { Text } from "@react-three/drei";
-
-// Educational binary distillation visualization
-// - mixtureCompA: feed mole fraction of A (more volatile)
-// - heatRateW controls boil-up
-// - condenserEfficiency and refluxRatio affect distillate rate
 
 export function DistillationRig() {
-  const p = useLabStore((s) => s.params.distillation);
+  const experiment = useLabStore((s) => s.distillationExperiment);
+  const updateExperiment = useLabStore((s) => s.updateDistillationExperiment);
 
-  const boilLevel = useRef(0.5);
-  const receiverLevel = useRef(0);
-  const vaporIntensity = useRef(0);
-  const temperatureRef = useRef(78); // simulated temperature
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  useFrame((_, dt) => {
-    const heat = Math.max(0, p.heatRateW);
-    const eff = Math.min(1, Math.max(0, p.condenserEfficiency));
-    const reflux = Math.max(0, p.refluxRatio);
+  const stageVideos: Record<string, string> = {
+    "introduction": "/videos/distillation/1-introduction.mp4",
+    "setup": "/videos/distillation/2-setup-the-aparatus.mp4",
+    "cooling": "/videos/distillation/3-cool-the-condenser.mp4",
+    "heating": "/videos/distillation/4-heat-the-substance.mp4",
+    "vaporization": "/videos/distillation/5-vaporization.mp4",
+    "condensing": "/videos/distillation/6-vapour-enters-the-condenser.mp4",
+    "collecting": "/videos/distillation/7-collect-the-distillate.mp4",
+    "complete": "/videos/distillation/8-complete-the-distillation.mp4",
+  };
 
-    const boilUp = heat * 1e-4;
-    const condensed = boilUp * eff;
-    const distillate = condensed * (1 / (1 + reflux));
+  useEffect(() => {
+    playStageVideo("introduction");
+  }, []);
 
-    if (boilLevel.current > 0.1) {
-      boilLevel.current = Math.max(
-        0.1,
-        boilLevel.current - distillate * dt * 0.15
-      );
-      receiverLevel.current = Math.min(
-        0.5,
-        receiverLevel.current + distillate * dt * 0.25
-      );
-      vaporIntensity.current = heat > 50 ? Math.min(0.5, boilUp * 3) : 0;
+  const handleVideoEnded = () => {
+    console.log("Video ended. Click a button to play next step.");
+  };
 
-      // Simulate temperature based on composition
-      const baseTemp = 78 + (100 - 78) * (1 - p.mixtureCompA);
-      temperatureRef.current = baseTemp + Math.random() * 2;
+  const playStageVideo = (
+    stage: "introduction" | "setup" | "cooling" | "heating" | "vaporization" | "condensing" | "collecting" | "complete"
+  ) => {
+    updateExperiment({ step: stage });
+    const videoPath = stageVideos[stage];
+    if (videoPath && videoRef.current) {
+      videoRef.current.src = videoPath;
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch((err) => {
+        console.log("Video play prevented:", err);
+      });
     }
-  });
+  };
+
+  const handleNext = () => {
+    const stepSequence: Array<"introduction" | "setup" | "cooling" | "heating" | "vaporization" | "condensing" | "collecting" | "complete"> = [
+      "introduction",
+      "setup",
+      "cooling",
+      "heating",
+      "vaporization",
+      "condensing",
+      "collecting",
+      "complete",
+    ];
+    const currentIndex = stepSequence.findIndex((s) => s === experiment.step);
+    if (currentIndex < stepSequence.length - 1) {
+      playStageVideo(stepSequence[currentIndex + 1]);
+    }
+  };
 
   return (
-    <group position={[0, 0, 0]}>
-      {/* Stand and burner base */}
-      <group position={[-0.7, 0.75, 0]}>
-        {/* Tripod stand */}
-        <mesh position={[0, 0.05, 0]}>
-          <cylinderGeometry args={[0.2, 0.2, 0.02, 32]} />
-          <meshStandardMaterial
-            color="#2a2a2a"
-            metalness={0.5}
-            roughness={0.5}
+    <div className="w-full h-full flex items-center justify-center p-5">
+      <div className="max-w-4xl w-full bg-slate-900/95 rounded-3xl p-6 shadow-2xl backdrop-blur-sm border border-white/10">
+        <div className="bg-black rounded-2xl overflow-hidden mb-5 shadow-inner">
+          <video
+            ref={videoRef}
+            className="w-full"
+            style={{
+              height: "450px",
+              objectFit: "contain",
+              pointerEvents: "none",
+            }}
+            playsInline
+            onEnded={handleVideoEnded}
+            onContextMenu={(e) => e.preventDefault()}
+            disablePictureInPicture
+            controlsList="nodownload noplaybackrate"
           />
-        </mesh>
-        {/* Wire gauze */}
-        <mesh position={[0, 0.35, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.15, 0.15, 0.005, 32]} />
-          <meshStandardMaterial
-            color="#888888"
-            metalness={0.6}
-            roughness={0.4}
-          />
-        </mesh>
-        {/* Bunsen burner */}
-        <mesh position={[0, 0.15, 0]}>
-          <cylinderGeometry args={[0.04, 0.04, 0.2, 16]} />
-          <meshStandardMaterial
-            color="#4a90e2"
-            metalness={0.6}
-            roughness={0.3}
-          />
-        </mesh>
-        {/* Flame */}
-        {p.heatRateW > 10 && (
-          <mesh position={[0, 0.3, 0]}>
-            <coneGeometry
-              args={[0.08, 0.15 + vaporIntensity.current * 0.2, 16]}
-            />
-            <meshStandardMaterial
-              color={p.heatRateW > 200 ? "#ff6600" : "#ffaa00"}
-              emissive={p.heatRateW > 200 ? "#ff4400" : "#ff8800"}
-              emissiveIntensity={0.8}
-              transparent
-              opacity={0.7}
-            />
-          </mesh>
-        )}
-      </group>
+        </div>
 
-      {/* Round Bottom Flask (Boiler) */}
-      <group position={[-0.7, 1.15, 0]}>
-        <mesh castShadow receiveShadow>
-          <sphereGeometry args={[0.25, 48, 48]} />
-          <meshPhysicalMaterial
-            color="#e8f4f8"
-            transparent
-            opacity={0.3}
-            roughness={0.05}
-            transmission={0.75}
-            thickness={2}
-            clearcoat={1}
-            clearcoatRoughness={0.1}
-          />
-        </mesh>
+        <div className="grid grid-cols-4 gap-3 mb-5">
+          <button
+            onClick={() => playStageVideo("introduction")}
+            className={`px-4 py-3 rounded-xl font-bold text-white text-xs transition-all flex flex-col items-center justify-center gap-1 border-2 ${
+              experiment.step === "introduction"
+                ? "bg-gradient-to-br from-indigo-600 to-purple-600 border-purple-400"
+                : "bg-slate-700/30 border-transparent hover:bg-slate-700/60"
+            }`}
+          >
+            <span className="text-lg"></span>
+            <span>Introduction</span>
+          </button>
 
-        {/* Boiling liquid */}
-        <mesh position={[0, -0.05 - (0.5 - boilLevel.current) * 0.1, 0]}>
-          <sphereGeometry
-            args={[
-              0.22 * (boilLevel.current / 0.5),
-              32,
-              32,
-              0,
-              Math.PI * 2,
-              0,
-              Math.PI / 2,
-            ]}
-          />
-          <meshStandardMaterial
-            color={p.mixtureCompA > 0.5 ? "#ff6b6b" : "#4169e1"}
-            transparent
-            opacity={0.7}
-            roughness={0.2}
-          />
-        </mesh>
+          <button
+            onClick={() => playStageVideo("setup")}
+            className={`px-4 py-3 rounded-xl font-bold text-white text-xs transition-all flex flex-col items-center justify-center gap-1 border-2 ${
+              experiment.step === "setup"
+                ? "bg-gradient-to-br from-indigo-600 to-purple-600 border-purple-400"
+                : "bg-slate-700/30 border-transparent hover:bg-slate-700/60"
+            }`}
+          >
+            <span className="text-lg"></span>
+            <span>Setup</span>
+          </button>
 
-        {/* Boiling bubbles */}
-        {vaporIntensity.current > 0.1 && (
-          <>
-            <mesh position={[0.1, 0, 0.05]}>
-              <sphereGeometry args={[0.03, 16, 16]} />
-              <meshStandardMaterial color="#ffffff" transparent opacity={0.4} />
-            </mesh>
-            <mesh position={[-0.08, 0.02, -0.03]}>
-              <sphereGeometry args={[0.025, 16, 16]} />
-              <meshStandardMaterial color="#ffffff" transparent opacity={0.4} />
-            </mesh>
-          </>
-        )}
+          <button
+            onClick={() => playStageVideo("cooling")}
+            className={`px-4 py-3 rounded-xl font-bold text-white text-xs transition-all flex flex-col items-center justify-center gap-1 border-2 ${
+              experiment.step === "cooling"
+                ? "bg-gradient-to-br from-indigo-600 to-purple-600 border-purple-400"
+                : "bg-slate-700/30 border-transparent hover:bg-slate-700/60"
+            }`}
+          >
+            <span className="text-lg"></span>
+            <span>Cool</span>
+          </button>
 
-        {/* Flask neck connection */}
-        <mesh position={[0.15, 0.15, 0]} rotation={[0, 0, Math.PI / 4]}>
-          <cylinderGeometry args={[0.03, 0.03, 0.15, 16]} />
-          <meshPhysicalMaterial
-            color="#e8f4f8"
-            transparent
-            opacity={0.35}
-            roughness={0.05}
-            transmission={0.7}
-            thickness={1.5}
-            clearcoat={1}
-          />
-        </mesh>
-      </group>
+          <button
+            onClick={() => playStageVideo("heating")}
+            className={`px-4 py-3 rounded-xl font-bold text-white text-xs transition-all flex flex-col items-center justify-center gap-1 border-2 ${
+              experiment.step === "heating"
+                ? "bg-gradient-to-br from-indigo-600 to-purple-600 border-purple-400"
+                : "bg-slate-700/30 border-transparent hover:bg-slate-700/60"
+            }`}
+          >
+            <span className="text-lg"></span>
+            <span>Heat</span>
+          </button>
 
-      {/* Distillation Column */}
-      <group position={[-0.35, 1.35, 0]}>
-        <mesh castShadow>
-          <cylinderGeometry args={[0.06, 0.06, 0.6, 24]} />
-          <meshPhysicalMaterial
-            color="#e8f4f8"
-            transparent
-            opacity={0.3}
-            roughness={0.05}
-            transmission={0.75}
-            thickness={2}
-            clearcoat={1}
-            clearcoatRoughness={0.1}
-          />
-        </mesh>
+          <button
+            onClick={() => playStageVideo("vaporization")}
+            className={`px-4 py-3 rounded-xl font-bold text-white text-xs transition-all flex flex-col items-center justify-center gap-1 border-2 ${
+              experiment.step === "vaporization"
+                ? "bg-gradient-to-br from-indigo-600 to-purple-600 border-purple-400"
+                : "bg-slate-700/30 border-transparent hover:bg-slate-700/60"
+            }`}
+          >
+            <span className="text-lg"></span>
+            <span>Vaporize</span>
+          </button>
 
-        {/* Vapor visualization */}
-        {vaporIntensity.current > 0.1 && (
-          <mesh>
-            <cylinderGeometry args={[0.04, 0.04, 0.55, 16]} />
-            <meshStandardMaterial
-              color="#e0f2fe"
-              transparent
-              opacity={0.3 + vaporIntensity.current * 0.5}
-            />
-          </mesh>
-        )}
+          <button
+            onClick={() => playStageVideo("condensing")}
+            className={`px-4 py-3 rounded-xl font-bold text-white text-xs transition-all flex flex-col items-center justify-center gap-1 border-2 ${
+              experiment.step === "condensing"
+                ? "bg-gradient-to-br from-indigo-600 to-purple-600 border-purple-400"
+                : "bg-slate-700/30 border-transparent hover:bg-slate-700/60"
+            }`}
+          >
+            <span className="text-lg"></span>
+            <span>Condense</span>
+          </button>
 
-        {/* Thermometer */}
-        <mesh position={[0.1, 0.2, 0]}>
-          <cylinderGeometry args={[0.008, 0.008, 0.3, 12]} />
-          <meshStandardMaterial color="#cc0000" />
-        </mesh>
-      </group>
+          <button
+            onClick={() => playStageVideo("collecting")}
+            className={`px-4 py-3 rounded-xl font-bold text-white text-xs transition-all flex flex-col items-center justify-center gap-1 border-2 ${
+              experiment.step === "collecting"
+                ? "bg-gradient-to-br from-indigo-600 to-purple-600 border-purple-400"
+                : "bg-slate-700/30 border-transparent hover:bg-slate-700/60"
+            }`}
+          >
+            <span className="text-lg"></span>
+            <span>Collect</span>
+          </button>
 
-      {/* Condenser (Liebig condenser) */}
-      <group position={[0.25, 1.5, 0]} rotation={[0, 0, -Math.PI / 6]}>
-        {/* Outer jacket */}
-        <mesh castShadow>
-          <cylinderGeometry args={[0.045, 0.045, 0.8, 24]} />
-          <meshPhysicalMaterial
-            color="#e8f4f8"
-            transparent
-            opacity={0.3}
-            roughness={0.05}
-            transmission={0.75}
-            thickness={2}
-            clearcoat={1}
-            clearcoatRoughness={0.1}
-          />
-        </mesh>
+          <button
+            onClick={() => playStageVideo("complete")}
+            className={`px-4 py-3 rounded-xl font-bold text-white text-xs transition-all flex flex-col items-center justify-center gap-1 border-2 ${
+              experiment.step === "complete"
+                ? "bg-gradient-to-br from-indigo-600 to-purple-600 border-purple-400"
+                : "bg-slate-700/30 border-transparent hover:bg-slate-700/60"
+            }`}
+          >
+            <span className="text-lg"></span>
+            <span>Complete</span>
+          </button>
+        </div>
 
-        {/* Inner tube */}
-        <mesh>
-          <cylinderGeometry args={[0.025, 0.025, 0.75, 16]} />
-          <meshPhysicalMaterial
-            color="#e8f4f8"
-            transparent
-            opacity={0.35}
-            roughness={0.05}
-            transmission={0.7}
-            thickness={1.5}
-            clearcoat={1}
-          />
-        </mesh>
+        <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-2 border-purple-400/40 rounded-xl px-5 py-4 text-purple-300 text-sm font-semibold text-center flex items-center justify-center gap-2">
+          <span className="text-lg"></span>
+          <span>
+            Current Step:{" "}
+            <strong className="capitalize text-purple-200">
+              {experiment.step}
+            </strong>
+          </span>
+        </div>
 
-        {/* Cooling water inlet/outlet */}
-        <mesh position={[0, -0.35, 0.06]} rotation={[0, Math.PI / 2, 0]}>
-          <cylinderGeometry args={[0.01, 0.01, 0.1, 12]} />
-          <meshStandardMaterial color="#2196f3" />
-        </mesh>
-        <mesh position={[0, 0.35, 0.06]} rotation={[0, Math.PI / 2, 0]}>
-          <cylinderGeometry args={[0.01, 0.01, 0.1, 12]} />
-          <meshStandardMaterial color="#2196f3" />
-        </mesh>
-
-        {/* Condensing droplets */}
-        {p.condenserEfficiency > 0.5 && vaporIntensity.current > 0.1 && (
-          <>
-            <mesh position={[0, 0.1, 0.02]}>
-              <sphereGeometry args={[0.015, 12, 12]} />
-              <meshStandardMaterial color="#60a5fa" transparent opacity={0.6} />
-            </mesh>
-            <mesh position={[0, -0.15, -0.02]}>
-              <sphereGeometry args={[0.012, 12, 12]} />
-              <meshStandardMaterial color="#60a5fa" transparent opacity={0.6} />
-            </mesh>
-          </>
-        )}
-      </group>
-
-      {/* Receiving Flask */}
-      <group position={[0.8, 0.95, 0]}>
-        <mesh castShadow receiveShadow>
-          <coneGeometry args={[0.18, 0.22, 32]} />
-          <meshPhysicalMaterial
-            color="#ffffff"
-            transparent
-            opacity={0.12}
-            roughness={0.05}
-            transmission={0.92}
-          />
-        </mesh>
-        <mesh position={[0, 0.15, 0]} castShadow>
-          <cylinderGeometry args={[0.18, 0.18, 0.08, 32]} />
-          <meshPhysicalMaterial
-            color="#ffffff"
-            transparent
-            opacity={0.12}
-            roughness={0.05}
-            transmission={0.92}
-          />
-        </mesh>
-
-        {/* Flask neck */}
-        <mesh position={[0, 0.25, 0]} castShadow>
-          <cylinderGeometry args={[0.03, 0.035, 0.12, 24]} />
-          <meshPhysicalMaterial
-            color="#ffffff"
-            transparent
-            opacity={0.12}
-            roughness={0.05}
-            transmission={0.92}
-          />
-        </mesh>
-
-        {/* Distillate (purified liquid) */}
-        {receiverLevel.current > 0.02 && (
-          <mesh position={[0, -0.11 + receiverLevel.current * 0.15, 0]}>
-            <cylinderGeometry
-              args={[
-                0.16,
-                0.16,
-                Math.max(0.02, receiverLevel.current * 0.3),
-                32,
-              ]}
-            />
-            <meshStandardMaterial
-              color={p.mixtureCompA > 0.5 ? "#ffb3ba" : "#bae1ff"}
-              transparent
-              opacity={0.6}
-              roughness={0.1}
-            />
-          </mesh>
-        )}
-      </group>
-
-      {/* Educational Labels */}
-      <Text
-        position={[-0.7, 0.6, 0]}
-        fontSize={0.05}
-        color="#ef4444"
-        anchorX="center"
-      >
-        Heat Source
-      </Text>
-
-      <Text
-        position={[-0.7, 1.55, 0]}
-        fontSize={0.05}
-        color="#2563eb"
-        anchorX="center"
-      >
-        Boiling Flask
-      </Text>
-
-      <Text
-        position={[0.25, 1.9, 0]}
-        fontSize={0.05}
-        color="#2563eb"
-        anchorX="center"
-      >
-        Condenser
-      </Text>
-
-      <Text
-        position={[0.8, 0.65, 0]}
-        fontSize={0.05}
-        color="#16a34a"
-        anchorX="center"
-      >
-        Distillate
-      </Text>
-
-      {/* Temperature display */}
-      <Text
-        position={[-0.2, 1.7, 0]}
-        fontSize={0.08}
-        color="#dc2626"
-        anchorX="center"
-      >
-        {temperatureRef.current.toFixed(1)}°C
-      </Text>
-
-      {receiverLevel.current > 0.45 && (
-        <Text
-          position={[0.4, 1.9, 0]}
-          fontSize={0.08}
-          color="#16a34a"
-          anchorX="center"
+        <button
+          onClick={handleNext}
+          disabled={experiment.step === "complete"}
+          className={`fixed bottom-8 right-8 px-6 py-4 rounded-full font-bold text-white text-base shadow-2xl transition-all flex items-center gap-3 ${
+            experiment.step === "complete"
+              ? "bg-gray-600 cursor-not-allowed opacity-50"
+              : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 hover:scale-110"
+          }`}
         >
-          Collection Complete!
-        </Text>
-      )}
-    </group>
+          <span>Next Step</span>
+          <span className="text-2xl"></span>
+        </button>
+      </div>
+    </div>
   );
 }

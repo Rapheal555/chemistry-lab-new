@@ -1,7 +1,6 @@
 import { useLabStore, type Technique } from "../state/labStore";
 import FiltrationSetup from "./params/FiltrationSetup";
 import FiltrationParams from "./params/FiltrationParams";
-import DistillationParams from "./params/DistillationParams";
 
 const techniques: {
   key: Technique;
@@ -16,10 +15,16 @@ const techniques: {
     desc: "Separate solid particles from liquid using filter paper",
   },
   {
+    key: "evaporation",
+    label: "Evaporation",
+    icon: "💧",
+    desc: "Remove solvent by heating to leave solid residue",
+  },
+  {
     key: "distillation",
-    label: "Distillation / Evaporation",
+    label: "Distillation",
     icon: "🌡️",
-    desc: "Separate liquids by boiling point or evaporate solvent",
+    desc: "Separate liquids by different boiling points",
   },
 ];
 
@@ -125,12 +130,26 @@ export default function TechniquePanel() {
             </div>
           </div>
         )}
-        {technique === "distillation" && (
-          <div>
-            <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-              Distillation Parameters
+        {technique === "evaporation" && (
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <h3 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+              💧 Evaporation Setup
             </h3>
-            <DistillationParams />
+            <p className="text-xs text-gray-600">
+              Watch the step-by-step video demonstration of the evaporation
+              process.
+            </p>
+          </div>
+        )}
+        {technique === "distillation" && (
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <h3 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+              🌡️ Distillation Setup
+            </h3>
+            <p className="text-xs text-gray-600">
+              Watch the complete distillation process through 8 detailed video
+              steps.
+            </p>
           </div>
         )}
       </div>

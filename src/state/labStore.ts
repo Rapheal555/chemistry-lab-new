@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 export type Technique =
   | "filtration"
+  | "evaporation"
   | "distillation"
   | "chromatography"
   | "centrifugation"
@@ -33,6 +34,26 @@ export type FiltrationExperimentState = {
   cakeThickness: number;
   isRunning: boolean;
   paperFoldProgress: number; // 0 to 1 for folding animation
+};
+
+// Experiment state for evaporation
+export type EvaporationExperimentState = {
+  step: "materials" | "mixing" | "setup" | "heating" | "complete";
+  isRunning: boolean;
+};
+
+// Experiment state for distillation
+export type DistillationExperimentState = {
+  step:
+    | "introduction"
+    | "setup"
+    | "cooling"
+    | "heating"
+    | "vaporization"
+    | "condensing"
+    | "collecting"
+    | "complete";
+  isRunning: boolean;
 };
 
 export type TechniqueParams = {
@@ -82,6 +103,8 @@ type LabState = {
   params: TechniqueParams;
 
   filtrationExperiment: FiltrationExperimentState;
+  evaporationExperiment: EvaporationExperimentState;
+  distillationExperiment: DistillationExperimentState;
   setTechnique: (t: Technique) => void;
   updateParams: <K extends keyof TechniqueParams>(
     key: K,
@@ -92,6 +115,14 @@ type LabState = {
     patch: Partial<FiltrationExperimentState>
   ) => void;
   resetFiltrationExperiment: () => void;
+  updateEvaporationExperiment: (
+    patch: Partial<EvaporationExperimentState>
+  ) => void;
+  resetEvaporationExperiment: () => void;
+  updateDistillationExperiment: (
+    patch: Partial<DistillationExperimentState>
+  ) => void;
+  resetDistillationExperiment: () => void;
 };
 
 export const useLabStore = create<LabState>((set) => ({
@@ -152,6 +183,14 @@ export const useLabStore = create<LabState>((set) => ({
     isRunning: false,
     paperFoldProgress: 0,
   },
+  evaporationExperiment: {
+    step: "materials",
+    isRunning: false,
+  },
+  distillationExperiment: {
+    step: "introduction",
+    isRunning: false,
+  },
   setTechnique: (t) => set({ technique: t }),
   updateParams: (key, patch) =>
     set((s) => ({
@@ -175,6 +214,28 @@ export const useLabStore = create<LabState>((set) => ({
         cakeThickness: 0.01,
         isRunning: false,
         paperFoldProgress: 0,
+      },
+    }),
+  updateEvaporationExperiment: (patch) =>
+    set((s) => ({
+      evaporationExperiment: { ...s.evaporationExperiment, ...patch },
+    })),
+  resetEvaporationExperiment: () =>
+    set({
+      evaporationExperiment: {
+        step: "materials",
+        isRunning: false,
+      },
+    }),
+  updateDistillationExperiment: (patch) =>
+    set((s) => ({
+      distillationExperiment: { ...s.distillationExperiment, ...patch },
+    })),
+  resetDistillationExperiment: () =>
+    set({
+      distillationExperiment: {
+        step: "introduction",
+        isRunning: false,
       },
     }),
 }));

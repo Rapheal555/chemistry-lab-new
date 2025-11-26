@@ -1,5 +1,3 @@
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { useState, useEffect } from "react";
 import TechniquePanel from "./components/TechniquePanel";
 import LabNotebook from "./components/LabNotebook";
@@ -8,41 +6,8 @@ import ObservationPanel from "./components/ObservationPanel";
 import WelcomeScreen from "./components/WelcomeScreen";
 import { useLabStore } from "./state/labStore";
 import { FiltrationRig } from "./simulation/techniques/FiltrationRig";
+import { EvaporationRig } from "./simulation/techniques/EvaporationRig";
 import { DistillationRig } from "./simulation/techniques/DistillationRig";
-
-function LabRoom() {
-  return (
-    <group>
-      {/* Lab Bench Surface - realistic wood/laminate */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0.745, 0]}
-        receiveShadow
-      >
-        <planeGeometry args={[4, 3]} />
-        <meshStandardMaterial color="#8b7355" roughness={0.8} />
-      </mesh>
-
-      {/* Floor - tile pattern */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[20, 20]} />
-        <meshStandardMaterial color="#c8c8c8" roughness={0.9} />
-      </mesh>
-
-      {/* Back wall - lab environment */}
-      <mesh position={[0, 2.5, -3]} receiveShadow>
-        <planeGeometry args={[20, 5]} />
-        <meshStandardMaterial color="#e8e4d9" />
-      </mesh>
-
-      {/* Lab bench structure */}
-      <mesh position={[0, 0.37, 0]}>
-        <boxGeometry args={[4, 0.05, 3]} />
-        <meshStandardMaterial color="#6b5839" />
-      </mesh>
-    </group>
-  );
-}
 
 export default function App() {
   const technique = useLabStore((s) => s.technique);
@@ -107,38 +72,22 @@ export default function App() {
           </div>
         </aside>
 
-        {/* Center - 3D Lab View */}
-        <main className="relative bg-gradient-to-b from-gray-100 to-gray-200">
-          <Canvas shadows gl={{ preserveDrawingBuffer: true }}>
-            <PerspectiveCamera makeDefault position={[3, 2.5, 4]} fov={55} />
-            <ambientLight intensity={0.5} />
-            <directionalLight
-              castShadow
-              position={[8, 12, 6]}
-              intensity={1.8}
-              shadow-mapSize-width={2048}
-              shadow-mapSize-height={2048}
-            />
-            <pointLight position={[-5, 5, 5]} intensity={0.4} color="#fff5e1" />
-            <LabRoom />
-            {technique === "filtration" && <FiltrationRig />}
-            {technique === "distillation" && <DistillationRig />}
-            <OrbitControls
-              makeDefault
-              minDistance={2}
-              maxDistance={8}
-              maxPolarAngle={Math.PI / 2}
-            />
-          </Canvas>
-
-          {/* 3D View Instructions */}
-          <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur px-4 py-2 rounded-lg shadow-lg text-sm">
-            <p className="font-semibold text-gray-700">🖱️ Mouse Controls:</p>
-            <p className="text-gray-600">
-              Left click + drag to rotate • Scroll to zoom • Right click + drag
-              to pan
-            </p>
-          </div>
+        {/* Center - Video Lab View */}
+        <main className="relative bg-gradient-to-b from-gray-900 to-gray-800 flex items-center justify-center">
+          {technique === "filtration" && <FiltrationRig />}
+          {technique === "evaporation" && <EvaporationRig />}
+          {technique === "distillation" && <DistillationRig />}
+          {!technique && (
+            <div className="text-center text-white">
+              <div className="text-6xl mb-4">🔬</div>
+              <h2 className="text-2xl font-bold mb-2">
+                Welcome to Virtual Chemistry Lab
+              </h2>
+              <p className="text-gray-300">
+                Select a technique from the left panel to begin
+              </p>
+            </div>
+          )}
         </main>
 
         {/* Right Panel - Observations & Data */}

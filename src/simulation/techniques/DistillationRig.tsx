@@ -1,4 +1,4 @@
-﻿import { useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { useLabStore } from "../../state/labStore";
 
 export function DistillationRig() {
@@ -8,26 +8,36 @@ export function DistillationRig() {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const stageVideos: Record<string, string> = {
-    "introduction": "/videos/distillation/1-introduction.mp4",
-    "setup": "/videos/distillation/2-setup-the-aparatus.mp4",
-    "cooling": "/videos/distillation/3-cool-the-condenser.mp4",
-    "heating": "/videos/distillation/4-heat-the-substance.mp4",
-    "vaporization": "/videos/distillation/5-vaporization.mp4",
-    "condensing": "/videos/distillation/6-vapour-enters-the-condenser.mp4",
-    "collecting": "/videos/distillation/7-collect-the-distillate.mp4",
-    "complete": "/videos/distillation/8-complete-the-distillation.mp4",
+    introduction: "/videos/distillation/1-introduction.mp4",
+    setup: "/videos/distillation/2-setup-the-aparatus.mp4",
+    cooling: "/videos/distillation/3-cool-the-condenser.mp4",
+    heating: "/videos/distillation/4-heat-the-substance.mp4",
+    vaporization: "/videos/distillation/5-vaporization.mp4",
+    condensing: "/videos/distillation/6-vapour-enters-the-condenser.mp4",
+    collecting: "/videos/distillation/7-collect-the-distillate.mp4",
+    complete: "/videos/distillation/8-complete-the-distillation.mp4",
   };
 
+  // Auto-play first step on mount
   useEffect(() => {
     playStageVideo("introduction");
   }, []);
 
   const handleVideoEnded = () => {
+    // Video ended - user must manually click next step
     console.log("Video ended. Click a button to play next step.");
   };
 
   const playStageVideo = (
-    stage: "introduction" | "setup" | "cooling" | "heating" | "vaporization" | "condensing" | "collecting" | "complete"
+    stage:
+      | "introduction"
+      | "setup"
+      | "cooling"
+      | "heating"
+      | "vaporization"
+      | "condensing"
+      | "collecting"
+      | "complete"
   ) => {
     updateExperiment({ step: stage });
     const videoPath = stageVideos[stage];
@@ -41,7 +51,16 @@ export function DistillationRig() {
   };
 
   const handleNext = () => {
-    const stepSequence: Array<"introduction" | "setup" | "cooling" | "heating" | "vaporization" | "condensing" | "collecting" | "complete"> = [
+    const stepSequence: Array<
+      | "introduction"
+      | "setup"
+      | "cooling"
+      | "heating"
+      | "vaporization"
+      | "condensing"
+      | "collecting"
+      | "complete"
+    > = [
       "introduction",
       "setup",
       "cooling",
@@ -86,7 +105,7 @@ export function DistillationRig() {
                 : "bg-slate-700/30 border-transparent hover:bg-slate-700/60"
             }`}
           >
-            <span className="text-lg"></span>
+            <span className="text-lg">📖</span>
             <span>Introduction</span>
           </button>
 
@@ -98,8 +117,8 @@ export function DistillationRig() {
                 : "bg-slate-700/30 border-transparent hover:bg-slate-700/60"
             }`}
           >
-            <span className="text-lg"></span>
-            <span>Setup</span>
+            <span className="text-lg">⚗️</span>
+            <span>Setup Aparatus</span>
           </button>
 
           <button
@@ -110,8 +129,8 @@ export function DistillationRig() {
                 : "bg-slate-700/30 border-transparent hover:bg-slate-700/60"
             }`}
           >
-            <span className="text-lg"></span>
-            <span>Cool</span>
+            <span className="text-lg">❄️</span>
+            <span>Cool the Condenser</span>
           </button>
 
           <button
@@ -122,8 +141,8 @@ export function DistillationRig() {
                 : "bg-slate-700/30 border-transparent hover:bg-slate-700/60"
             }`}
           >
-            <span className="text-lg"></span>
-            <span>Heat</span>
+            <span className="text-lg">🔥</span>
+            <span>Heat the substance</span>
           </button>
 
           <button
@@ -134,7 +153,7 @@ export function DistillationRig() {
                 : "bg-slate-700/30 border-transparent hover:bg-slate-700/60"
             }`}
           >
-            <span className="text-lg"></span>
+            <span className="text-lg">💨</span>
             <span>Vaporize</span>
           </button>
 
@@ -146,8 +165,8 @@ export function DistillationRig() {
                 : "bg-slate-700/30 border-transparent hover:bg-slate-700/60"
             }`}
           >
-            <span className="text-lg"></span>
-            <span>Condense</span>
+            <span className="text-lg">🌊</span>
+            <span>Condense the vapor</span>
           </button>
 
           <button
@@ -158,8 +177,8 @@ export function DistillationRig() {
                 : "bg-slate-700/30 border-transparent hover:bg-slate-700/60"
             }`}
           >
-            <span className="text-lg"></span>
-            <span>Collect</span>
+            <span className="text-lg">🧪</span>
+            <span>Collect the distillate</span>
           </button>
 
           <button
@@ -170,13 +189,13 @@ export function DistillationRig() {
                 : "bg-slate-700/30 border-transparent hover:bg-slate-700/60"
             }`}
           >
-            <span className="text-lg"></span>
-            <span>Complete</span>
+            <span className="text-lg">✅</span>
+            <span>Complete the distillation</span>
           </button>
         </div>
 
         <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-2 border-purple-400/40 rounded-xl px-5 py-4 text-purple-300 text-sm font-semibold text-center flex items-center justify-center gap-2">
-          <span className="text-lg"></span>
+          <span className="text-lg">🌡️</span>
           <span>
             Current Step:{" "}
             <strong className="capitalize text-purple-200">
@@ -185,6 +204,7 @@ export function DistillationRig() {
           </span>
         </div>
 
+        {/* Floating Next Button */}
         <button
           onClick={handleNext}
           disabled={experiment.step === "complete"}
@@ -195,7 +215,7 @@ export function DistillationRig() {
           }`}
         >
           <span>Next Step</span>
-          <span className="text-2xl"></span>
+          <span className="text-2xl">→</span>
         </button>
       </div>
     </div>

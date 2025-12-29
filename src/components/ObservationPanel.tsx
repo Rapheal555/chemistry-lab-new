@@ -1,7 +1,11 @@
 import { useLabStore } from "../state/labStore";
 import { useState, useEffect } from "react";
 
-export default function ObservationPanel() {
+type ObservationPanelProps = {
+  compact?: boolean;
+};
+
+export default function ObservationPanel({ compact = false }: ObservationPanelProps) {
   const technique = useLabStore((s) => s.technique);
   const params = useLabStore((s) => s.params);
   const common = useLabStore((s) => s.common);
@@ -146,30 +150,35 @@ export default function ObservationPanel() {
   const obs = getObservations();
 
   return (
-    <div className="p-5 h-full flex flex-col">
+    <div className={`p-5 h-full flex flex-col ${compact ? "gap-3" : ""}`}>
       {/* Header */}
-      <div className="bg-green-50 border-l-4 border-green-500 p-3 mb-4">
-        <h2 className="text-lg font-bold text-green-900 flex items-center gap-2">
-          👁️ Observations
+      <div className="rounded-xl bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-white/10 p-3 mb-4">
+        <h2 className="text-lg font-bold text-white flex items-center gap-2 drop-shadow">
+          👁️ Lab HUD
         </h2>
-        <p className="text-xs text-green-700 mt-1">Record what you see</p>
+        {!compact && (
+          <p className="text-xs text-slate-200 mt-1">
+            Quick status for the current rig.
+          </p>
+        )}
       </div>
 
       {/* Timer */}
-      <div className="bg-blue-100 rounded-lg p-4 mb-4">
-        <div className="text-sm font-semibold text-blue-900 mb-2">
-          Experiment Timer
+      <div className="bg-slate-900/60 border border-white/10 rounded-xl p-4 mb-4 shadow-inner">
+        <div className="flex items-center justify-between text-xs text-slate-200">
+          <span className="font-semibold">Experiment Timer</span>
+          <span className="text-[11px] text-slate-400">Run + pause</span>
         </div>
-        <div className="text-3xl font-bold text-blue-700 mb-3">
+        <div className="text-3xl font-black text-cyan-300 mb-3">
           {formatTime(timeElapsed)}
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setIsRunning(!isRunning)}
-            className={`flex-1 py-2 px-3 rounded font-semibold transition-colors ${
+            className={`flex-1 py-2 px-3 rounded-lg font-semibold transition-all shadow ${
               isRunning
-                ? "bg-orange-500 hover:bg-orange-600 text-white"
-                : "bg-green-500 hover:bg-green-600 text-white"
+                ? "bg-gradient-to-r from-orange-500 to-red-500 text-white"
+                : "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white"
             }`}
           >
             {isRunning ? "⏸ Pause" : "▶ Start"}
@@ -179,7 +188,7 @@ export default function ObservationPanel() {
               setTimeElapsed(0);
               setIsRunning(false);
             }}
-            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded font-semibold transition-colors"
+            className="px-4 py-2 bg-white/10 hover:bg-white/15 border border-white/15 rounded-lg font-semibold text-white transition-colors"
           >
             ↺
           </button>
@@ -187,46 +196,51 @@ export default function ObservationPanel() {
       </div>
 
       {/* Current Conditions */}
-      <div className="bg-amber-50 rounded-lg p-3 mb-4">
-        <h3 className="font-bold text-amber-900 text-sm mb-2">
-          🌡️ Lab Conditions
-        </h3>
-        <div className="text-xs space-y-1 text-amber-800">
-          <div className="flex justify-between">
-            <span>Temperature:</span>
-            <span className="font-semibold">
-              {common.ambientTemperatureC}°C
-            </span>
+      <div className="bg-slate-900/60 border border-white/10 rounded-xl p-3 mb-4">
+        <div className="flex items-center justify-between text-xs text-slate-200">
+          <span className="font-semibold flex items-center gap-1">
+            🌡️ Lab Conditions
+          </span>
+          <span className="text-slate-400">ambient</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-sm text-white mt-2">
+          <div className="rounded-lg bg-white/5 border border-white/10 px-3 py-2">
+            <p className="text-[11px] uppercase tracking-wide text-cyan-100">
+              Temperature
+            </p>
+            <p className="font-bold">{common.ambientTemperatureC}°C</p>
           </div>
-          <div className="flex justify-between">
-            <span>Pressure:</span>
-            <span className="font-semibold">
-              {common.ambientPressureAtm} atm
-            </span>
+          <div className="rounded-lg bg-white/5 border border-white/10 px-3 py-2">
+            <p className="text-[11px] uppercase tracking-wide text-emerald-100">
+              Pressure
+            </p>
+            <p className="font-bold">{common.ambientPressureAtm} atm</p>
           </div>
         </div>
       </div>
 
       {/* Observations List */}
       <div className="flex-1 overflow-y-auto">
-        <h3 className="font-bold text-gray-800 text-sm mb-2">
-          📝 What to Observe:
+        <h3 className="font-bold text-white text-sm mb-2">
+          📝 Observe:
         </h3>
-        <p className="text-sm text-blue-600 mb-3 italic">{obs.description}</p>
+        <p className="text-sm text-cyan-100/90 mb-3 italic">
+          {obs.description}
+        </p>
 
-        <div className="space-y-2 mb-4">
+        <div className="grid grid-cols-1 gap-2 mb-4">
           {obs.observations.map((item, i) => {
             const isPositive = item.startsWith("✓");
             const isWarning = item.startsWith("⚠");
             return (
               <div
                 key={i}
-                className={`text-sm p-2 rounded ${
+                className={`text-sm p-3 rounded-lg border ${
                   isPositive
-                    ? "bg-green-50 text-green-800"
+                    ? "bg-emerald-500/10 text-emerald-100 border-emerald-400/30"
                     : isWarning
-                    ? "bg-yellow-50 text-yellow-800"
-                    : "bg-gray-50 text-gray-700"
+                    ? "bg-amber-500/10 text-amber-100 border-amber-400/30"
+                    : "bg-white/5 text-white border-white/10"
                 }`}
               >
                 {item}
@@ -235,9 +249,9 @@ export default function ObservationPanel() {
           })}
         </div>
 
-        <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
-          <h4 className="font-bold text-purple-900 text-sm mb-2">💡 Tips:</h4>
-          <ul className="text-xs space-y-1.5 text-purple-800">
+        <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+          <h4 className="font-bold text-white text-sm mb-2">💡 Tips:</h4>
+          <ul className="text-xs space-y-1.5 text-slate-100">
             {obs.tips.map((tip, i) => (
               <li key={i} className="flex gap-2">
                 <span>•</span>
@@ -249,13 +263,17 @@ export default function ObservationPanel() {
       </div>
 
       {/* Lab Notes */}
-      <div className="mt-4">
-        <h3 className="font-bold text-gray-800 text-sm mb-2">📓 Your Notes:</h3>
-        <textarea
-          className="w-full h-24 p-2 text-sm border border-gray-300 rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Write your observations here...&#10;What do you see happening?&#10;What patterns do you notice?"
-        />
-      </div>
+      {!compact && (
+        <div className="mt-4">
+          <h3 className="font-bold text-white text-sm mb-2">
+            📓 Field Notes:
+          </h3>
+          <textarea
+            className="w-full h-24 p-3 text-sm border border-white/10 bg-slate-900/60 text-white rounded resize-none focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            placeholder="Log your observations here..."
+          />
+        </div>
+      )}
     </div>
   );
 }

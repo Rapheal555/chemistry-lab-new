@@ -6,25 +6,29 @@ const techniques: {
   key: Technique;
   label: string;
   icon: string;
-  desc: string;
+  accent: string;
+  hint: string;
 }[] = [
   {
     key: "filtration",
     label: "Filtration",
-    icon: "🔬",
-    desc: "Separate solid particles from liquid using filter paper",
+    icon: "🧪",
+    accent: "from-cyan-400 to-blue-600",
+    hint: "Paper + vacuum separate solid from liquid",
   },
   {
     key: "evaporation",
     label: "Evaporation",
-    icon: "💧",
-    desc: "Remove solvent by heating to leave solid residue",
+    icon: "🔥",
+    accent: "from-amber-400 to-orange-600",
+    hint: "Heat off solvent, leave crystals",
   },
   {
     key: "distillation",
     label: "Distillation",
     icon: "🌡️",
-    desc: "Separate liquids by different boiling points",
+    accent: "from-fuchsia-400 to-purple-600",
+    hint: "Boil → condense → collect pure fraction",
   },
 ];
 
@@ -34,121 +38,146 @@ export default function TechniquePanel() {
   const common = useLabStore((s) => s.common);
   const updateCommon = useLabStore((s) => s.updateCommon);
 
-  const currentTechnique = techniques.find((t) => t.key === technique);
-
   return (
     <div className="space-y-5">
       {/* Technique Selector */}
-      <div>
-        <label className="text-sm font-bold text-gray-700 mb-2 block">
-          Select Separation Technique
-        </label>
-        <div className="space-y-2">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs uppercase tracking-[0.2em] text-cyan-200">
+            Technique bay
+          </p>
+          <p className="text-[11px] text-slate-400">Tap to switch rigs</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {techniques.map((t) => (
             <button
               key={t.key}
               onClick={() => setTechnique(t.key)}
-              className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+              className={`relative overflow-hidden rounded-2xl border border-white/10 p-4 text-left transition-all shadow-lg backdrop-blur ${
                 technique === t.key
-                  ? "border-blue-500 bg-blue-50 shadow-md"
-                  : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50"
+                  ? "ring-2 ring-cyan-300/70 bg-white/5"
+                  : "bg-white/2 hover:bg-white/10"
               }`}
             >
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xl">{t.icon}</span>
-                <span className="font-semibold text-gray-800">{t.label}</span>
+              <div
+                className={`absolute inset-0 opacity-40 bg-gradient-to-br ${t.accent}`}
+              />
+              <div className="relative flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-slate-950/60 border border-white/20 flex items-center justify-center text-2xl">
+                  {t.icon}
+                </div>
+                <div className="flex-1">
+                  <p className="text-white font-bold text-lg leading-tight">
+                    {t.label}
+                  </p>
+                  <p className="text-[12px] text-slate-100/80">{t.hint}</p>
+                </div>
               </div>
-              <p className="text-xs text-gray-600 ml-7">{t.desc}</p>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Current Technique Info */}
-      {currentTechnique && (
-        <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-4 rounded-lg shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-2xl">{currentTechnique.icon}</span>
-            <h3 className="font-bold text-lg">Current Setup</h3>
-          </div>
-          <p className="text-sm opacity-90">{currentTechnique.label}</p>
-        </div>
-      )}
-
       {/* Environmental Conditions */}
-      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-        <h3 className="font-bold text-gray-700 mb-3 text-sm flex items-center gap-2">
-          Lab Environment
-        </h3>
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-semibold text-gray-600 block mb-1">
-              Room Temperature (C)
-            </label>
+      <div className="rounded-2xl p-4 border border-white/10 bg-slate-950/50 shadow-inner space-y-3">
+        <div className="flex items-center justify-between text-xs text-slate-200">
+          <span className="font-semibold text-white">Lab Environment</span>
+          <span className="text-slate-400">Applies to all rigs</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 text-xs text-slate-100">
+          <label className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="uppercase tracking-wide text-[10px] text-cyan-100">
+                Room Temp
+              </span>
+              <span className="text-[11px] text-slate-300">
+                {common.ambientTemperatureC}°C
+              </span>
+            </div>
             <input
-              type="number"
+              type="range"
+              min={0}
+              max={40}
               value={common.ambientTemperatureC}
               onChange={(e) =>
                 updateCommon({ ambientTemperatureC: Number(e.target.value) })
               }
-              className="w-full bg-white border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              min={0}
-              max={40}
+              className="w-full accent-cyan-400"
             />
-            <p className="text-xs text-gray-500 mt-1">Typical lab: 20-25C</p>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-gray-600 block mb-1">
-              Atmospheric Pressure (atm)
-            </label>
+          </label>
+          <label className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="uppercase tracking-wide text-[10px] text-emerald-100">
+                Pressure
+              </span>
+              <span className="text-[11px] text-slate-300">
+                {common.ambientPressureAtm.toFixed(2)} atm
+              </span>
+            </div>
             <input
-              type="number"
+              type="range"
+              min={0.5}
+              max={1.5}
               step={0.01}
               value={common.ambientPressureAtm}
               onChange={(e) =>
                 updateCommon({ ambientPressureAtm: Number(e.target.value) })
               }
-              className="w-full bg-white border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              min={0.5}
-              max={1.5}
+              className="w-full accent-emerald-400"
             />
-            <p className="text-xs text-gray-500 mt-1">Standard: 1.0 atm</p>
-          </div>
+          </label>
         </div>
       </div>
 
       {/* Technique-Specific Parameters */}
-      <div className="border-t-2 border-gray-300 pt-4">
+      <div className="space-y-4">
         {technique === "filtration" && (
-          <div className="space-y-4">
-            <FiltrationSetup />
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                Equipment Settings
-              </h3>
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-lg">
+              <div className="flex items-center justify-between mb-2 text-sm text-white">
+                <span className="font-semibold flex items-center gap-2">
+                  🧪 Filtration Run
+                </span>
+                <span className="text-slate-200 text-xs">
+                  Build mixture → run
+                </span>
+              </div>
+              <FiltrationSetup />
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4 shadow-inner">
+              <div className="flex items-center justify-between mb-3 text-sm text-white">
+                <span className="font-semibold flex items-center gap-2">
+                  🎚️ Equipment Dials
+                </span>
+                <span className="text-[11px] text-slate-300">
+                  Adjust before pouring
+                </span>
+              </div>
               <FiltrationParams />
             </div>
           </div>
         )}
         {technique === "evaporation" && (
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h3 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-              💧 Evaporation Setup
-            </h3>
-            <p className="text-xs text-gray-600">
-              Watch the step-by-step video demonstration of the evaporation
-              process.
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-lg text-white space-y-2">
+            <div className="flex items-center gap-2 font-semibold">
+              <span>🔥</span>
+              <span>Evaporation Sequence</span>
+            </div>
+            <p className="text-sm text-slate-200">
+              Watch materials → mix → setup → heat. Use stage buttons on the
+              simulation deck to advance.
             </p>
           </div>
         )}
         {technique === "distillation" && (
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h3 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-              🌡️ Distillation Setup
-            </h3>
-            <p className="text-xs text-gray-600">
-              Watch the complete distillation process through 8 detailed video
-              steps.
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-lg text-white space-y-2">
+            <div className="flex items-center gap-2 font-semibold">
+              <span>🌡️</span>
+              <span>Distillation Sequence</span>
+            </div>
+            <p className="text-sm text-slate-200">
+              Follow the condenser-first workflow. Use stage tiles on the deck
+              to move from intro to collection.
             </p>
           </div>
         )}
